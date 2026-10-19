@@ -1,6 +1,14 @@
 // core/Engine.ts
 
+import { Config } from "./Config";
+import { Logger } from "./Logger";
+import { Time } from "./Time";
+import { EventBus } from "./EventBus";
+import { GameLoop } from "./GameLoop";
+import { Scene } from "./Scene";
+
 import { Renderer } from "../rendering/Renderer";
+
 import { Input } from "../input/Input";
 
 import { Physics } from "../physics/Physics";
@@ -9,61 +17,162 @@ import { EntityManager } from "../entity/EntityManager";
 
 import { World } from "../world/World";
 
-import { Time } from "./Time";
-import { GameLoop } from "./GameLoop";
+import { Player } from "../player/Player";
+import { PlayerController } from "../player/PlayerController";
+
+import { WeaponManager } from "../weapon/WeaponManager";
 
 export class Engine {
 
-    public renderer: Renderer;
+    //==================================================
+    // Core
+    //==================================================
 
-    public input: Input;
+    public readonly config: Config;
+    public readonly logger: Logger;
+    public readonly time: Time;
+    public readonly events: EventBus;
 
-    public physics: Physics;
+    //==================================================
+    // Scene
+    //==================================================
 
-    public entities: EntityManager;
+    public readonly scene: Scene;
 
-    public world: World;
+    //==================================================
+    // Systems
+    //==================================================
 
-    public time: Time;
+    public readonly renderer: Renderer;
+    public readonly input: Input;
+    public readonly physics: Physics;
 
-    private gameLoop: GameLoop;
+    public readonly entities: EntityManager;
+
+    public readonly world: World;
+
+    public readonly weapons: WeaponManager;
+
+    //==================================================
+    // Gameplay
+    //==================================================
+
+    public readonly player: Player;
+
+    public readonly playerController: PlayerController;
+
+    //==================================================
+    // Loop
+    //==================================================
+
+    private readonly gameLoop: GameLoop;
+
+    //==================================================
+    // Constructor
+    //==================================================
 
     constructor() {
 
-        this.renderer = new Renderer();
+        //-----------------
+        // Core
+        //-----------------
 
-        this.input = new Input();
+        this.config = new Config();
 
-        this.physics = new Physics();
-
-        this.entities = new EntityManager();
-
-        this.world = new World(
-            this.renderer.scene
-        );
+        this.logger = new Logger();
 
         this.time = new Time();
 
-        this.gameLoop = new GameLoop(
-            this.update.bind(this)
+        this.events = new EventBus();
+
+        //-----------------
+        // Scene
+        //-----------------
+
+        this.scene = new Scene();
+
+        //-----------------
+        // Rendering
+        //-----------------
+
+        this.renderer = new Renderer(
+            this.scene
         );
+
+        //-----------------
+        // Input
+        //-----------------
+
+        this.input = new Input();
+
+        //-----------------
+        // Physics
+        //-----------------
+
+        this.physics = new Physics();
+
+        //-----------------
+        // Entity
+        //-----------------
+
+        this.entities = new EntityManager();
+
+        //-----------------
+        // World
+        //-----------------
+
+        this.world = new World(
+            this.scene
+        );
+
+        //-----------------
+        // Weapon
+        //-----------------
+
+        this.weapons = new WeaponManager();
+
+        //-----------------
+        // Player
+        //-----------------
+
+        this.player = new Player();
+
+        this.playerController =
+            new PlayerController(
+                this.player,
+                this.input
+            );
+
+        //-----------------
+        // Register
+        //-----------------
+
+        this.entities.add(this.player);
+
+        //-----------------
+        // Game Loop
+        //-----------------
+
+        this.gameLoop =
+            new GameLoop(
+                this.update.bind(this)
+            );
     }
+
+    //==================================================
+    // Start
+    //==================================================
 
     public start(): void {
 
-        this.world.initialize();
+        this.initialize();
 
         this.gameLoop.start();
+
+        this.logger.log(
+            "Engine Started"
+        );
     }
 
-    private update(delta: number): void {
-
-        this.time.update(delta);
-
-        this.input.update();
-
-        this.entities.update(delta);
-
-        this.renderer.render();
-    }
-}
+    //==================================================
+    // Init
